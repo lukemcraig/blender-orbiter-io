@@ -54,7 +54,7 @@ VERBOSE_OUT = False;
 
 bl_info = {
     "name": "Orbiter mesh (.msh)",
-    "author": "vlad32768",
+    "author": "vlad32768, lukemcraig",
     "version": (1,1),
     "blender": (2, 6, 3),
     "api": 46166,
@@ -63,7 +63,7 @@ bl_info = {
     "warning": '', # used for warning icon and text in addons panel
     "wiki_url": "http://www.orbiter-forum.com/showthread.php?t=18661",
     "tracker_url": "http://www.orbiter-forum.com/showthread.php?t=18661",
-    "description": "Imports and exports Orbiter mesh file (as well as materials and textures)."}
+    "description": "Imports and exports .msh files"}
 
 
 import bpy
@@ -589,12 +589,12 @@ def export_msh(filepath,convert_coords,apply_modifiers,delete_orphans):
         filepath=filepath+".msh"
 
     file=open(filepath,"w")
-    file.write("MSHX1\n")
+    # file.write("MSHX1\n")
     ngroups=0
     for obj in bpy.context.selected_objects:
         if obj.type=='MESH':
             ngroups=ngroups+1
-    file.write("GROUPS {}\n".format(ngroups))
+    # file.write("GROUPS {}\n".format(ngroups))
 
     mtrls={}
     txtrs={}
@@ -632,14 +632,14 @@ def export_msh(filepath,convert_coords,apply_modifiers,delete_orphans):
             faces=[]
 
 
-            file.write("LABEL {}\n".format(obj.name))
+            # file.write("LABEL {}\n".format(obj.name))
             # Adding materials and textures
             if len(obj.material_slots)!=0:
                 mat=obj.material_slots[0].material
                 if not (mat.name in mtrls):
                     print("New material:",mat.name)
                     mtrls[mat.name]=len(mtrls)
-                file.write("MATERIAL {}\n".format(mtrls[mat.name]+1)) #.msh material idxs start from 1
+                # file.write("MATERIAL {}\n".format(mtrls[mat.name]+1)) #.msh material idxs start from 1
 
                 if mat.texture_slots[0]!=None:
                     tex=mat.texture_slots[0].texture
@@ -647,14 +647,14 @@ def export_msh(filepath,convert_coords,apply_modifiers,delete_orphans):
                         if not(tex.name in txtrs):
                             print("New texture:",tex.name)
                             txtrs[tex.name]=len(txtrs)
-                        file.write("TEXTURE {}\n".format(txtrs[tex.name]+1))#.msh tex idxs start from 1
+                        # file.write("TEXTURE {}\n".format(txtrs[tex.name]+1))#.msh tex idxs start from 1
                     else:
                         print("Non-image texture")
-                        file.write("TEXTURE 0\n")
-                else: #no tex slots in material
-                    file.write("TEXTURE 0\n")
-            else: #no material slots in mesh object
-                file.write("MATERIAL 0\n")
+                        # file.write("TEXTURE 0\n")
+                # else: #no tex slots in material
+                    # file.write("TEXTURE 0\n")
+            # else: #no material slots in mesh object
+                # file.write("MATERIAL 0\n")
 
             #preparing vertices array: coords and normal
             for vert in me.vertices:
@@ -707,29 +707,31 @@ def export_msh(filepath,convert_coords,apply_modifiers,delete_orphans):
             print("vtx: ",len(vtx),"  faces:",len(faces))
 
             #write GEOM section
-            if nonormal:
-                file.write("NONORMAL\n")
-            file.write("GEOM {} {}\n".format(len(vtx),len(faces)))
+            # if nonormal:
+            #     file.write("NONORMAL\n")
+            file.write("{}\n{}\n".format(len(vtx),len(faces)))
             if convert_coords:
+                file.write("vertices\n")
                 for v in vtx:
-                    file.write("{} {} {}".format(-v[0][0],v[0][2],-v[0][1]))
-                    if not nonormal: #I think normal coords should be converted too
-                        file.write(" {} {} {}".format(-v[1][0],v[1][2],-v[1][1]))
-                    if has_uv:
-                        file.write(" {} {}".format(v[2][0],1-v[2][1]))
-                    file.write("\n")
+                    file.write("{}\n{}\n{}\n".format(-v[0][0],v[0][2],-v[0][1]))
+                    # if not nonormal: #I think normal coords should be converted too
+                    #     file.write("normal: {} {} {}".format(-v[1][0],v[1][2],-v[1][1]))
+                    # if has_uv:
+                    #     file.write("uv: {} {}".format(v[2][0],1-v[2][1]))
+                    # file.write("\n")
+                file.write("triangles\n")
                 for f in faces:
-                    file.write("{} {} {}\n".format(f[0],f[2],f[1]))
+                    file.write("{}\n{}\n{}\n".format(f[0],f[2],f[1]))
             else:
                 for v in vtx:
-                    file.write("{} {} {}".format(v[0][0],v[0][1],v[0][2]))
+                    file.write("{}\n{}\n{}\n".format(v[0][0],v[0][1],v[0][2]))
                     if not nonormal:
                         file.write(" {} {} {}".format(v[1][0],v[1][1],v[1][2]))
                     if has_uv:
                         file.write(" {} {}".format(v[2][0],1-v[2][1]))
                     file.write("\n")
                 for f in faces:
-                    file.write("{} {} {}\n".format(f[0],f[1],f[2]))
+                    file.write("{}\n{}\n{}\n".format(f[0],f[1],f[2]))
 
             if (apply_modifiers): #Mesh reading finished; removing temporary mesh with applied modifiers
                 bpy.data.meshes.remove(me)
@@ -739,23 +741,23 @@ def export_msh(filepath,convert_coords,apply_modifiers,delete_orphans):
     print("===Textures summary=====")
     print(txtrs)
     #===Write MATERIALS section=====
-    file.write("MATERIALS {}\n".format(len(mtrls))) #just mtrls sorted by values
+    # file.write("MATERIALS {}\n".format(len(mtrls))) #just mtrls sorted by values
     temp_m=sorted(mtrls.items(),key=lambda x: x[1])
-    for m in temp_m:
-        file.write("{}\n".format(m[0]))
+    # for m in temp_m:
+    #     file.write("{}\n".format(m[0]))
 
     for m in temp_m:
-        file.write("MATERIAL {}\n".format(m[0]))
+        # file.write("MATERIAL {}\n".format(m[0]))
 
         mat=bpy.data.materials[m[0]]
         dc=mat.diffuse_color
-        file.write("{} {} {} {}\n".format(dc[0],dc[1],dc[2],mat.alpha))
-        file.write("{} {} {} {}\n".format(dc[0],dc[1],dc[2],mat.alpha))
+        # file.write("{} {} {} {}\n".format(dc[0],dc[1],dc[2],mat.alpha))
+        # file.write("{} {} {} {}\n".format(dc[0],dc[1],dc[2],mat.alpha))
         sc=mat.specular_color
-        file.write("{} {} {} {} {}\n".format(sc[0],sc[1],sc[2],mat.specular_alpha,mat.specular_hardness))
-        file.write("{} {} {} {}\n".format(dc[0]*mat.emit,dc[1]*mat.emit,dc[2]*mat.emit,mat.alpha))
+        # file.write("{} {} {} {} {}\n".format(sc[0],sc[1],sc[2],mat.specular_alpha,mat.specular_hardness))
+        # file.write("{} {} {} {}\n".format(dc[0]*mat.emit,dc[1]*mat.emit,dc[2]*mat.emit,mat.alpha))
     #=====Write TEXTURES section ======
-    file.write("TEXTURES {}\n".format(len(txtrs)))
+    # file.write("TEXTURES {}\n".format(len(txtrs)))
 
     v=os.path.split(filepath)
     mshdir=v[0]
